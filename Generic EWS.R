@@ -377,11 +377,11 @@ for(i in 1:length(long.enough)){
 ##number of analysed time series
 ccntr
 
+##bind the results
 fin.res<-rbindlist(full.time.series);fin.res
 
-head(fin.res$TP.FP, 100)
-
-names(fin.res)
+#============================================================================================================
+## ROC curves, looped, using id number (the unique time series number) as predictor
 
 vars<-unique(fin.res$variable)
 
@@ -404,18 +404,8 @@ for(oo in 1:length(vars)){
 areas<-rbindlist(areas)
 areas[order(areas$auc.rocs, decreasing=T),]
 
-
-
-
-
-
-
-
-
-
-
-
-
+#============================================================================================================
+##some plots
 melt.res<-as.data.table(melt(fin.res, id=c(1:62)))
 
 melt.res
