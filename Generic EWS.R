@@ -1,17 +1,13 @@
-<<<<<<< HEAD
-##ROC curves for LPI data
-rm(list=ls())
-
-=======
 ### data maipulation LPI
 rm(list=ls())
->>>>>>> LPI-coding-ROC
 eps <- 1e-7 ## finite difference interval
 library(data.table);library(reshape2);library(ggplot2)
 library(earlywarnings);library(mgcv);library(parallel)
 library(pROC)
-source('~/Dropbox/LPI EWS/R code/Generalised code - composite ews.R', chdir = TRUE)
-source('~/Dropbox/LPI EWS/R code/no plot ews.R', chdir = TRUE)
+# source('~/Dropbox/LPI EWS/R code/Generalised code - composite ews.R', chdir = TRUE)
+# source('~/Dropbox/LPI EWS/R code/no plot ews.R', chdir = TRUE)
+source('~/Desktop/LivingPlanet index early warnings/RCode/Github/LPI-EWS/Generalised code - composite ews.R', chdir = TRUE)
+source('~/Desktop/LivingPlanet index early warnings/RCode/Github/LPI-EWS/no plot ews.R', chdir = TRUE)
 ###########################################################################################
 ##read in data
 ddd<-read.csv("~/Dropbox/LPI EWS/Data/LPI_NA.csv")
@@ -88,18 +84,19 @@ results<-NULL
 full.time.series<-NULL
 ccntr<-0
 
-for(i in 1:length(long.enough)){
+#for(i in 1:length(long.enough)){
 	#i=4968
 	#i=29
+full.time.series <-mclapply(long.enough, function(y){
 		#=======================================================================================================================
-		y<-long.enough[[i]]
+		#y<-long.enough[[i]]
 		if(length(y[,1])>0){
 		#=======================================================================================================================
 		##if there is a reasonable amount of variation in the time series data
 		if(!length(which(diff(y$value)==0))>(length(y[,1])/2.8)){
 		
 		##print the % of the task done
-		print((i/length(long.enough))*100)
+		##print((i/length(long.enough))*100)
 		
 		##the number of years of data, remove any NAs
 		time.series.length<-length(na.omit(y$year))
@@ -113,8 +110,8 @@ for(i in 1:length(long.enough)){
 		##plot the data, and the GAM fit
 		
 		#ggplot(y, aes(x=year, y=value))+geom_line()+theme_classic()+stat_smooth(method="gam", formula=y~s(x, k=-1))
-		plot(y$year, y$value, type="l")
-		points(time.series.tippings$years, time.series.tippings$fit, type="l", lwd=2)
+		# plot(y$year, y$value, type="l")
+		# points(time.series.tippings$years, time.series.tippings$fit, type="l", lwd=2)
 		
 		#=======================================================================================================================
 		##check if the data needs interpolating (is there any missing data)
@@ -172,13 +169,8 @@ for(i in 1:length(long.enough)){
 					##save the output
 					comps.res[[comp.cntr]]<-comp
 					}
-<<<<<<< HEAD
-				}
-			}	
-=======
 			}
 		}	
->>>>>>> LPI-coding-ROC
     
     ##using the GAM approach, calculate the changes in direction of the ews 
     comp.inds <-mclapply(comps.res, function(ll){
@@ -265,75 +257,6 @@ for(i in 1:length(long.enough)){
 				yy$value[which(yy$value==-1)]<-0
 				
 				if(length(yy[,1])>0){
-				
-				# ##add a column to yy which determines the different signals the gam for the ews produces
-				# ##(e.g. significant increase, decrease, etc)
-				# counter.ews<-0;yy$split.ews<-0
-				# if(length(yy[,1])>1){	
-					# for(jj in 2:length(yy$value)){
-						# ##jj=2
-						# if(yy$value[jj]==yy$value[jj-1]){
-							# yy$split.ews[jj]<-yy$split.ews[jj-1]}else{
-								# counter.ews<-counter.ews+1
-								# yy$split.ews[jj]<-counter.ews
-					# }}
-				# }			
-				#############################################################################################################################################################
-				# ##just look at instances where a population declines significantly (sign==-1) and make sure that the pop isnt declining from the beginning (split!=0)
-				# y1<-subset(yy, sign==-1 & split!=0)
-				
-				# ##if there is enough data
-				# ##if(length(y1[,1])>0){
-				
-					# split.y<-split(y1, list(y1$split))
-
-					# ##calculate the number of true positives and false negatives
-					# tp.fn<-do.call("rbind", lapply(split.y, function(u, yy){
-					
-						# ##u<-split.y[[1]]
-						
-						# ##look at the data from when an EWS starts, until 5 years after it finishes AFTER an EWS has occured
-						# ##tip.dat<-time.series.tippings[(which(time.series.tippings$years==u[1,]$years)+1):(which(time.series.tippings$years==u[1,]$years)+5),1:5]
-						# tip.dat<-na.omit(yy[(which(yy$years==(u[1,]$years-1))):(which(yy$years==(u[1,]$years-6))),])
-												
-						# ##make a blank data set for the results
-						# res.tip<-data.frame(variable=u$variable[1], TP=0, FN=0)
-						
-						# ##if there is a signifiant decline in this period record it as a True positive, otherwise it is a false positive
-						# if(length(which(tip.dat$sign==-1))>0){res.tip$TP<-1}else{res.tip$FN<-1}
-						
-						# ##return the results
-						# return(res.tip)
-						
-					# }, yy=yy))
-				# ##}
-				# #############################################################################################################################################################
-				# ##just look at instances where there is an EWS (value==1) and make sure that this isnt the initial signal in the data
-				# y2<-subset(yy, split.ews!=max(yy$split.ews))
-	
-				# split.y2<-split(y2, list(y2$split.ews))
-				
-				# # ##calculate the number of true positives and false positives
-				# fp.tn<-do.call("rbind", lapply(split.y2, function(u, time.series.tippings){
-					
-					# ##u2<-split.y2[[1]]
-					
-					# ##look at the data from when an EWS starts, until 5 years after it finishes AFTER an EWS has occured
-					# #tip.dat2<-na.omit(time.series.tippings[(which(time.series.tippings$years==u2[1,]$years+5)):(which(time.series.tippings$years==max(u2$years)+5)),1:5])
-					
-					# tip.dat2<-yy[]
-					
-											
-					# ##make a blank data set for the results
-					# res.tip<-data.frame(variable=u$variable[1], TP=0, FP=0)
-					
-					# ##if there is a signifiant decline in this period record it as a True positive, otherwise it is a false positive
-					# if(length(which(tip.dat$sign==-1))>0){res.tip$TP<-1}else{res.tip$FP<-1}
-					
-					# ##return the results
-					# return(res.tip)
-					
-					# }, time.series.tippings=time.series.tippings))
 
 					TP<-0
 					FP<-0
@@ -363,48 +286,48 @@ for(i in 1:length(long.enough)){
 					}
 				#return(data.frame(variable=yy$variable[1], TP, FP, TN, FN))
 				
-<<<<<<< HEAD
-				if(TP+FP+FN+TN>0){				
-					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP+TN), rep(0, FP+FN)))
-=======
 				if(TP+FP>0){				
 					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP), rep(0, FP)))
->>>>>>> LPI-coding-ROC
 					return(roc.dat)
 				}
 
 				}}))					
 				
-				
-				
-				
 		ccntr<-ccntr+1
-		results[[ccntr]]<-cbind(time.series.length, ddd)	
-		#time.series.tippings[is.na(time.series.tippings)]<-0
-
-		full.time.series[[ccntr]]<-cbind(y[1,1:(length(y)-3)], time.series.length, ddd)
+		##for looped version
+		#results[[ccntr]]<-cbind(time.series.length, ddd)	
+		#full.time.series[[ccntr]]<-cbind(y[1,1:(length(y)-3)], time.series.length, ddd)
+		return(cbind(y[1,1:(length(y)-3)], time.series.length, ddd))
 				}
 			}
 		}
 	}
-}
+}, mc.cores=6)
 
 ##number of analysed time series
 ccntr
-
-<<<<<<< HEAD
-##bind the results
 fin.res<-rbindlist(full.time.series);fin.res
-
 #============================================================================================================
-## ROC curves, looped, using id number (the unique time series number) as predictor
-=======
-fin.res<-rbindlist(full.time.series);fin.res
+##add in some additional information about the
+##is the predictor based on the gam approach?
+lll<-unlist(lapply(strsplit(as.character(fin.res$variable), split=".",fixed=T), function(x){
+	if(length(which(unlist(x)=="gam"))>0){return("Yes")}else{"No"}	
+}))
+fin.res$inc.gam<-lll
 
-head(fin.res$TP.FP, 100)
+##is it a composite approach?
+mmm<-unlist(lapply(strsplit(as.character(fin.res$variable), split=".",fixed=T), function(x){
+	if(length(which(unlist(x)=="comb"))>0){return("Yes")}else{"No"}	
+}))
+fin.res$is.comb<-mmm
 
-names(fin.res)
->>>>>>> LPI-coding-ROC
+## add in the number of predictors in the method
+nnn<-unlist(lapply(strsplit(as.character(fin.res$variable), split="[.+]"), function(x){
+	##sx<-unlist(strsplit(as.character(fin.res$variable)[142765], "[.+]"))
+	return(length(x[!(x %in% c("gam", "comb"))]))
+}))
+fin.res$n.preds<-nnn
+#============================================================================================================
 
 vars<-unique(fin.res$variable)
 
@@ -426,24 +349,19 @@ for(oo in 1:length(vars)){
 
 areas<-rbindlist(areas)
 areas[order(areas$auc.rocs, decreasing=T),]
-
-<<<<<<< HEAD
 #============================================================================================================
-##some plots
-=======
+##calculate proportion sof fp to tp
+fin.res
+rev(sort(tapply(fin.res$TP.FP, list(fin.res$variable), function(x){sum(x)/length(x)})))
+
+
+#============================================================================================================
 
 
 
 
 
 
-
-
-
-
-
-
->>>>>>> LPI-coding-ROC
 melt.res<-as.data.table(melt(fin.res, id=c(1:62)))
 
 melt.res
