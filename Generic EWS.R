@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 ##ROC curves for LPI data
 rm(list=ls())
 
+=======
+### data maipulation LPI
+rm(list=ls())
+>>>>>>> LPI-coding-ROC
 eps <- 1e-7 ## finite difference interval
 library(data.table);library(reshape2);library(ggplot2)
 library(earlywarnings);library(mgcv);library(parallel)
@@ -167,8 +172,13 @@ for(i in 1:length(long.enough)){
 					##save the output
 					comps.res[[comp.cntr]]<-comp
 					}
+<<<<<<< HEAD
 				}
 			}	
+=======
+			}
+		}	
+>>>>>>> LPI-coding-ROC
     
     ##using the GAM approach, calculate the changes in direction of the ews 
     comp.inds <-mclapply(comps.res, function(ll){
@@ -353,8 +363,13 @@ for(i in 1:length(long.enough)){
 					}
 				#return(data.frame(variable=yy$variable[1], TP, FP, TN, FN))
 				
+<<<<<<< HEAD
 				if(TP+FP+FN+TN>0){				
 					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP+TN), rep(0, FP+FN)))
+=======
+				if(TP+FP>0){				
+					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP), rep(0, FP)))
+>>>>>>> LPI-coding-ROC
 					return(roc.dat)
 				}
 
@@ -377,11 +392,19 @@ for(i in 1:length(long.enough)){
 ##number of analysed time series
 ccntr
 
+<<<<<<< HEAD
 ##bind the results
 fin.res<-rbindlist(full.time.series);fin.res
 
 #============================================================================================================
 ## ROC curves, looped, using id number (the unique time series number) as predictor
+=======
+fin.res<-rbindlist(full.time.series);fin.res
+
+head(fin.res$TP.FP, 100)
+
+names(fin.res)
+>>>>>>> LPI-coding-ROC
 
 vars<-unique(fin.res$variable)
 
@@ -404,8 +427,23 @@ for(oo in 1:length(vars)){
 areas<-rbindlist(areas)
 areas[order(areas$auc.rocs, decreasing=T),]
 
+<<<<<<< HEAD
 #============================================================================================================
 ##some plots
+=======
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> LPI-coding-ROC
 melt.res<-as.data.table(melt(fin.res, id=c(1:62)))
 
 melt.res
