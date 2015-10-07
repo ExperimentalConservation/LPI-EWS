@@ -103,10 +103,7 @@ full.time.series <-mclapply(long.enough, function(y){
 		#=======================================================================================================================
 		##if there is a reasonable amount of variation in the time series data
 		if(!length(which(diff(y$value)==0))>(length(y[,1])/2.8)){
-		
-		##print the % of the task done
-		##print((i/length(long.enough))*100)
-		
+			
 		##the number of years of data, remove any NAs
 		time.series.length<-length(na.omit(y$year))
 		
@@ -171,7 +168,7 @@ full.time.series <-mclapply(long.enough, function(y){
 					comp.cntr<-comp.cntr+1					
 					
 					##run the composite EWS. calculates when the threshold has been calculated. Plot or not?
-					comp<-composite_ews(mat.dat, indicators=c(as.character(unlist(combs[m,]))), 2.5, F)
+					comp<-composite_ews(mat.dat, indicators=c(as.character(unlist(combs[m,]))), 2, F)
 					
 					##make any points where the threshold is not crossed a 0 rather than an NA
 					comp$threshold.crossed[is.na(comp$threshold.crossed)]<-0
@@ -274,12 +271,20 @@ full.time.series <-mclapply(long.enough, function(y){
 					
 					window.length<-10
 					
-					for(tt in 1:(length(yy[,1])-window.length)){
-						##tt<-1	
-						
+					##only consider it an EWS signal if the previous signal matched it, therefor 2:length
+					for(tt in 2:(length(yy[,1])-window.length)){
+						##tt<-2	
 						sel.dat<-yy[(tt+1):((tt+1)+window.length),]
 						
+						##is there an ews? 1=yes, 0=no
 						val<-yy$value[tt]
+						
+						##previous time step value
+						tm1.val<-yy$value[tt-1]
+						
+						if(val==1){
+							val<-ifelse(val==tm1.val, 1, 0)
+						}
 						
 						##check whether true positive or false positive
 						if(val==1){
