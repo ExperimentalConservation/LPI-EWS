@@ -1,4 +1,12 @@
-### data maipulation LPI
+###########################################################################################
+##I wonder if including "consistent" change in a leading indicator, rather than just a single change event might do better? 
+## e.g., only include an early warning signal if there are several concurrent singlas, rather than just a single one as we do at the moment?
+
+
+
+
+
+###########################################################################################
 rm(list=ls())
 eps <- 1e-7 ## finite difference interval
 library(data.table);library(reshape2);library(ggplot2)
@@ -10,6 +18,7 @@ source('~/Desktop/LivingPlanet index early warnings/RCode/Github/LPI-EWS/General
 source('~/Desktop/LivingPlanet index early warnings/RCode/Github/LPI-EWS/no plot ews.R', chdir = TRUE)
 ###########################################################################################
 ##read in data
+### data maipulation LPI
 ddd<-read.csv("~/Dropbox/LPI EWS/Data/LPI_NA.csv")
 length(ddd)
 head(ddd, 2)
@@ -162,7 +171,7 @@ full.time.series <-mclapply(long.enough, function(y){
 					comp.cntr<-comp.cntr+1					
 					
 					##run the composite EWS. calculates when the threshold has been calculated. Plot or not?
-					comp<-composite_ews(mat.dat, indicators=c(as.character(unlist(combs[m,]))), 2, F)
+					comp<-composite_ews(mat.dat, indicators=c(as.character(unlist(combs[m,]))), 2.5, F)
 					
 					##make any points where the threshold is not crossed a 0 rather than an NA
 					comp$threshold.crossed[is.na(comp$threshold.crossed)]<-0
@@ -343,7 +352,9 @@ for(oo in 1:length(vars)){
 	
 	areas[[oo]]<-data.frame(auc(rocs), vars[oo])
 	
-	plot(rocs, add=ifelse(oo==1, F, T), col=adjustcolor("black", alpha=0.2))
+	clr<-ifelse(t1$inc.gam[1]=="Yes", "Red", "Blue")
+	
+	plot(rocs, add=ifelse(oo==1, F, T), col=adjustcolor(clr, alpha=0.2))
 
 }
 
@@ -354,13 +365,7 @@ areas[order(areas$auc.rocs, decreasing=T),]
 fin.res
 rev(sort(tapply(fin.res$TP.FP, list(fin.res$variable), function(x){sum(x)/length(x)})))
 
-
 #============================================================================================================
-
-
-
-
-
 
 melt.res<-as.data.table(melt(fin.res, id=c(1:62)))
 
