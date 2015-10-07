@@ -46,12 +46,12 @@ rm(ddd);rm(chrs);rm(melt.ddd);rm(yrs)
 
 ###########################################################################################
 ##functino to calculate the slopes, derivatives and ci's of the data, based on the Gam method from Burthe et al.:
-	is.there = function(x=0, L.CI, U.CI){
-							pos<- ifelse(x<U.CI, 1, -1) 
-							negs<-ifelse(x>L.CI, -1, 1)
-							return(pos+negs)}
+is.there = function(x=0, L.CI, U.CI){
+		pos<- ifelse(x<U.CI, 1, -1) 
+		negs<-ifelse(x>L.CI, -1, 1)
+		return(pos+negs)}
 													##round(length(timeseries)/4)	
-gam_smoothing<-function(years, timeseries,knots){	
+gam_smoothing<-function(years, timeseries,knots){
 		if(length(which(timeseries<=0))==0){
 		gam1<-gam(timeseries~s(as.vector(years), bs="cs", k=knots), family=gaussian(link="log"))}else{
 		gam1<-gam(timeseries~s(as.vector(years), bs="cs", k=knots), family=gaussian)}
@@ -98,15 +98,12 @@ ccntr<-0
 	#i=29
 full.time.series <-mclapply(long.enough, function(y){
 		#=======================================================================================================================
-		#y<-long.enough[[i]]
+		##y<-long.enough[[i]];print((i/length(long.enough)*100)
 		if(length(y[,1])>0){
 		#=======================================================================================================================
 		##if there is a reasonable amount of variation in the time series data
 		if(!length(which(diff(y$value)==0))>(length(y[,1])/2.8)){
-		
-		##print the % of the task done
-		##print((i/length(long.enough))*100)
-		
+			
 		##the number of years of data, remove any NAs
 		time.series.length<-length(na.omit(y$year))
 		
@@ -171,7 +168,7 @@ full.time.series <-mclapply(long.enough, function(y){
 					comp.cntr<-comp.cntr+1					
 					
 					##run the composite EWS. calculates when the threshold has been calculated. Plot or not?
-					comp<-composite_ews(mat.dat, indicators=c(as.character(unlist(combs[m,]))), 2.5, F)
+					comp<-composite_ews(mat.dat, indicators=c(as.character(unlist(combs[m,]))), 2, F)
 					
 					##make any points where the threshold is not crossed a 0 rather than an NA
 					comp$threshold.crossed[is.na(comp$threshold.crossed)]<-0
@@ -274,12 +271,20 @@ full.time.series <-mclapply(long.enough, function(y){
 					
 					window.length<-10
 					
-					for(tt in 1:(length(yy[,1])-window.length)){
-						##tt<-1	
-						
+					##only consider it an EWS signal if the previous signal matched it, therefor 2:length
+					for(tt in 2:(length(yy[,1])-window.length)){
+						##tt<-2	
 						sel.dat<-yy[(tt+1):((tt+1)+window.length),]
 						
-						val<-yy$value[tt]
+						# ##is there an ews? 1=yes, 0=no
+						 val<-yy$value[tt]
+						
+						# #previous time step value
+						tm1.val<-yy$value[tt-1]
+						
+						if(val==1){
+							val<-ifelse(val==tm1.val, 1, 0)
+						}
 						
 						##check whether true positive or false positive
 						if(val==1){
@@ -295,8 +300,8 @@ full.time.series <-mclapply(long.enough, function(y){
 					}
 				#return(data.frame(variable=yy$variable[1], TP, FP, TN, FN))
 				
-				if(TP+FP>0){				
-					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP), rep(0, FP)))
+				if(TP+FP+TN+FN>0){				
+					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP+TN), rep(0, FP+FN)))
 					return(roc.dat)
 				}
 
@@ -312,6 +317,7 @@ full.time.series <-mclapply(long.enough, function(y){
 		}
 	}
 }, mc.cores=6)
+#}
 
 ##number of analysed time series
 ccntr
