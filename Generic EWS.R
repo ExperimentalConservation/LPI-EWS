@@ -96,9 +96,10 @@ ccntr<-0
 #for(i in 1:length(long.enough)){
 	#i=4968
 	#i=29
+	#i=563
 full.time.series <-mclapply(long.enough, function(y){
 		#=======================================================================================================================
-		##y<-long.enough[[i]];print((i/length(long.enough)*100)
+		##y<-long.enough[[i]];print((i/length(long.enough)*100))
 		if(length(y[,1])>0){
 		#=======================================================================================================================
 		##if there is a reasonable amount of variation in the time series data
@@ -295,13 +296,12 @@ full.time.series <-mclapply(long.enough, function(y){
 						if(val==0){
 							if(length(which(sel.dat$sign==-1))>0){
 								FN<-FN+1}else{TN<-TN+1}
-						
 						}
 					}
 				#return(data.frame(variable=yy$variable[1], TP, FP, TN, FN))
 				
 				if(TP+FP+TN+FN>0){				
-					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP+TN), rep(0, FP+FN)))
+					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP+TN), rep(0, FP+FN)), TP, FP, TN, FN)
 					return(roc.dat)
 				}
 
@@ -370,6 +370,11 @@ areas[order(areas$auc.rocs, decreasing=T),]
 ##calculate proportion sof fp to tp
 fin.res
 rev(sort(tapply(fin.res$TP.FP, list(fin.res$variable), function(x){sum(x)/length(x)})))
+
+##calculate by ID and variable
+by.id<-(melt(tapply(fin.res$TP.FP, list(fin.res$variable, fin.res$ID), function(x){sum(x)/length(x)})))
+head(by.id)
+head(by.id[order(by.id$value, decreasing=T),], 1000)
 
 #============================================================================================================
 
