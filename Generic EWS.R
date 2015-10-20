@@ -371,10 +371,7 @@ areas[order(areas$auc.rocs, decreasing=T),]
 fin.res
 rev(sort(tapply(fin.res$TP.FP, list(fin.res$variable), function(x){sum(x)/length(x)})))
 
-##calculate by ID and variable
-by.id<-(melt(tapply(fin.res$TP.FP, list(fin.res$variable, fin.res$ID), function(x){sum(x)/length(x)})))
-head(by.id)
-head(by.id[order(by.id$value, decreasing=T),], 1000)
+##some investigations
 
 #============================================================================================================
 
