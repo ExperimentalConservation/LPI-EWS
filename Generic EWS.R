@@ -301,7 +301,7 @@ full.time.series <-mclapply(long.enough, function(y){
 				#return(data.frame(variable=yy$variable[1], TP, FP, TN, FN))
 				
 				if(TP+FP+TN+FN>0){				
-					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP+TN), rep(0, FP+FN)), TP, FP, TN, FN)
+					roc.dat<-data.frame(variable=yy$variable[1], TP, FP, TN, FN, prop=sum(TP,TN)/sum(TP, FP, TN, FN))##TP.FP=c(rep(1, TP+TN), rep(0, FP+FN))
 					return(roc.dat)
 				}
 
@@ -322,6 +322,7 @@ full.time.series <-mclapply(long.enough, function(y){
 ##number of analysed time series
 ccntr
 fin.res<-rbindlist(full.time.series);fin.res
+
 #============================================================================================================
 ##add in some additional information about the
 ##is the predictor based on the gam approach?
@@ -342,6 +343,9 @@ nnn<-unlist(lapply(strsplit(as.character(fin.res$variable), split="[.+]"), funct
 	return(length(x[!(x %in% c("gam", "comb"))]))
 }))
 fin.res$n.preds<-nnn
+
+save(fin.res, file="~/Dropbox/LPI EWS/Data/EWS results.RData")
+
 #============================================================================================================
 
 vars<-unique(fin.res$variable)
