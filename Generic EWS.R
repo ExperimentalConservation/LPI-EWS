@@ -281,11 +281,11 @@ full.time.series <-mclapply(long.enough, function(y){
 						 val<-yy$value[tt]
 						
 						# #previous time step value
-						tm1.val<-yy$value[tt-1]
+						#tm1.val<-yy$value[tt-1]
 						
-						if(val==1){
-							val<-ifelse(val==tm1.val, 1, 0)
-						}
+						#if(val==1){
+					  #	val<-ifelse(val==tm1.val, 1, 0)
+						#}
 						
 						##check whether true positive or false positive
 						if(val==1){
