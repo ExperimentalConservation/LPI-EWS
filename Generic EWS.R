@@ -1,13 +1,24 @@
-### data maipulation LPI
+###########################################################################################
+##I wonder if including "consistent" change in a leading indicator, rather than just a single change event might do better? 
+## e.g., only include an early warning signal if there are several concurrent singlas, rather than just a single one as we do at the moment?
+
+
+
+
+
+###########################################################################################
 rm(list=ls())
 eps <- 1e-7 ## finite difference interval
 library(data.table);library(reshape2);library(ggplot2)
 library(earlywarnings);library(mgcv);library(parallel)
 library(pROC)
-source('~/Dropbox/LPI EWS/R code/Generalised code - composite ews.R', chdir = TRUE)
-source('~/Dropbox/LPI EWS/R code/no plot ews.R', chdir = TRUE)
+# source('~/Dropbox/LPI EWS/R code/Generalised code - composite ews.R', chdir = TRUE)
+# source('~/Dropbox/LPI EWS/R code/no plot ews.R', chdir = TRUE)
+source('~/Desktop/LivingPlanet index early warnings/RCode/Github/LPI-EWS/Generalised code - composite ews.R', chdir = TRUE)
+source('~/Desktop/LivingPlanet index early warnings/RCode/Github/LPI-EWS/no plot ews.R', chdir = TRUE)
 ###########################################################################################
 ##read in data
+### data maipulation LPI
 ddd<-read.csv("~/Dropbox/LPI EWS/Data/LPI_NA.csv")
 length(ddd)
 head(ddd, 2)
@@ -35,12 +46,12 @@ rm(ddd);rm(chrs);rm(melt.ddd);rm(yrs)
 
 ###########################################################################################
 ##functino to calculate the slopes, derivatives and ci's of the data, based on the Gam method from Burthe et al.:
-	is.there = function(x=0, L.CI, U.CI){
-							pos<- ifelse(x<U.CI, 1, -1) 
-							negs<-ifelse(x>L.CI, -1, 1)
-							return(pos+negs)}
+is.there = function(x=0, L.CI, U.CI){
+		pos<- ifelse(x<U.CI, 1, -1) 
+		negs<-ifelse(x>L.CI, -1, 1)
+		return(pos+negs)}
 													##round(length(timeseries)/4)	
-gam_smoothing<-function(years, timeseries,knots){	
+gam_smoothing<-function(years, timeseries,knots){
 		if(length(which(timeseries<=0))==0){
 		gam1<-gam(timeseries~s(as.vector(years), bs="cs", k=knots), family=gaussian(link="log"))}else{
 		gam1<-gam(timeseries~s(as.vector(years), bs="cs", k=knots), family=gaussian)}
@@ -82,19 +93,18 @@ results<-NULL
 full.time.series<-NULL
 ccntr<-0
 
-for(i in 1:length(long.enough)){
+#for(i in 1:length(long.enough)){
 	#i=4968
 	#i=29
+	#i=563
+full.time.series <-mclapply(long.enough, function(y){
 		#=======================================================================================================================
-		y<-long.enough[[i]]
+		##y<-long.enough[[i]];print((i/length(long.enough)*100))
 		if(length(y[,1])>0){
 		#=======================================================================================================================
 		##if there is a reasonable amount of variation in the time series data
 		if(!length(which(diff(y$value)==0))>(length(y[,1])/2.8)){
-		
-		##print the % of the task done
-		print((i/length(long.enough))*100)
-		
+			
 		##the number of years of data, remove any NAs
 		time.series.length<-length(na.omit(y$year))
 		
@@ -107,8 +117,8 @@ for(i in 1:length(long.enough)){
 		##plot the data, and the GAM fit
 		
 		#ggplot(y, aes(x=year, y=value))+geom_line()+theme_classic()+stat_smooth(method="gam", formula=y~s(x, k=-1))
-		plot(y$year, y$value, type="l")
-		points(time.series.tippings$years, time.series.tippings$fit, type="l", lwd=2)
+		# plot(y$year, y$value, type="l")
+		# points(time.series.tippings$years, time.series.tippings$fit, type="l", lwd=2)
 		
 		#=======================================================================================================================
 		##check if the data needs interpolating (is there any missing data)
@@ -254,75 +264,6 @@ for(i in 1:length(long.enough)){
 				yy$value[which(yy$value==-1)]<-0
 				
 				if(length(yy[,1])>0){
-				
-				# ##add a column to yy which determines the different signals the gam for the ews produces
-				# ##(e.g. significant increase, decrease, etc)
-				# counter.ews<-0;yy$split.ews<-0
-				# if(length(yy[,1])>1){	
-					# for(jj in 2:length(yy$value)){
-						# ##jj=2
-						# if(yy$value[jj]==yy$value[jj-1]){
-							# yy$split.ews[jj]<-yy$split.ews[jj-1]}else{
-								# counter.ews<-counter.ews+1
-								# yy$split.ews[jj]<-counter.ews
-					# }}
-				# }			
-				#############################################################################################################################################################
-				# ##just look at instances where a population declines significantly (sign==-1) and make sure that the pop isnt declining from the beginning (split!=0)
-				# y1<-subset(yy, sign==-1 & split!=0)
-				
-				# ##if there is enough data
-				# ##if(length(y1[,1])>0){
-				
-					# split.y<-split(y1, list(y1$split))
-
-					# ##calculate the number of true positives and false negatives
-					# tp.fn<-do.call("rbind", lapply(split.y, function(u, yy){
-					
-						# ##u<-split.y[[1]]
-						
-						# ##look at the data from when an EWS starts, until 5 years after it finishes AFTER an EWS has occured
-						# ##tip.dat<-time.series.tippings[(which(time.series.tippings$years==u[1,]$years)+1):(which(time.series.tippings$years==u[1,]$years)+5),1:5]
-						# tip.dat<-na.omit(yy[(which(yy$years==(u[1,]$years-1))):(which(yy$years==(u[1,]$years-6))),])
-												
-						# ##make a blank data set for the results
-						# res.tip<-data.frame(variable=u$variable[1], TP=0, FN=0)
-						
-						# ##if there is a signifiant decline in this period record it as a True positive, otherwise it is a false positive
-						# if(length(which(tip.dat$sign==-1))>0){res.tip$TP<-1}else{res.tip$FN<-1}
-						
-						# ##return the results
-						# return(res.tip)
-						
-					# }, yy=yy))
-				# ##}
-				# #############################################################################################################################################################
-				# ##just look at instances where there is an EWS (value==1) and make sure that this isnt the initial signal in the data
-				# y2<-subset(yy, split.ews!=max(yy$split.ews))
-	
-				# split.y2<-split(y2, list(y2$split.ews))
-				
-				# # ##calculate the number of true positives and false positives
-				# fp.tn<-do.call("rbind", lapply(split.y2, function(u, time.series.tippings){
-					
-					# ##u2<-split.y2[[1]]
-					
-					# ##look at the data from when an EWS starts, until 5 years after it finishes AFTER an EWS has occured
-					# #tip.dat2<-na.omit(time.series.tippings[(which(time.series.tippings$years==u2[1,]$years+5)):(which(time.series.tippings$years==max(u2$years)+5)),1:5])
-					
-					# tip.dat2<-yy[]
-					
-											
-					# ##make a blank data set for the results
-					# res.tip<-data.frame(variable=u$variable[1], TP=0, FP=0)
-					
-					# ##if there is a signifiant decline in this period record it as a True positive, otherwise it is a false positive
-					# if(length(which(tip.dat$sign==-1))>0){res.tip$TP<-1}else{res.tip$FP<-1}
-					
-					# ##return the results
-					# return(res.tip)
-					
-					# }, time.series.tippings=time.series.tippings))
 
 					TP<-0
 					FP<-0
@@ -331,12 +272,20 @@ for(i in 1:length(long.enough)){
 					
 					window.length<-10
 					
-					for(tt in 1:(length(yy[,1])-window.length)){
-						##tt<-1	
-						
+					##only consider it an EWS signal if the previous signal matched it, therefor 2:length
+					for(tt in 2:(length(yy[,1])-window.length)){
+						##tt<-2	
 						sel.dat<-yy[(tt+1):((tt+1)+window.length),]
 						
-						val<-yy$value[tt]
+						# ##is there an ews? 1=yes, 0=no
+						 val<-yy$value[tt]
+						
+						# #previous time step value
+						#tm1.val<-yy$value[tt-1]
+						
+						#if(val==1){
+					  #	val<-ifelse(val==tm1.val, 1, 0)
+						#}
 						
 						##check whether true positive or false positive
 						if(val==1){
@@ -347,40 +296,57 @@ for(i in 1:length(long.enough)){
 						if(val==0){
 							if(length(which(sel.dat$sign==-1))>0){
 								FN<-FN+1}else{TN<-TN+1}
-						
 						}
 					}
 				#return(data.frame(variable=yy$variable[1], TP, FP, TN, FN))
 				
-				if(TP+FP>0){				
-					roc.dat<-data.frame(variable=yy$variable[1], TP.FP=c(rep(1, TP), rep(0, FP)))
+				if(TP+FP+TN+FN>0){				
+					roc.dat<-data.frame(variable=yy$variable[1], TP, FP, TN, FN, prop=sum(TP,TN)/sum(TP, FP, TN, FN))##TP.FP=c(rep(1, TP+TN), rep(0, FP+FN))
 					return(roc.dat)
 				}
 
 				}}))					
 				
-				
-				
-				
 		ccntr<-ccntr+1
-		results[[ccntr]]<-cbind(time.series.length, ddd)	
-		#time.series.tippings[is.na(time.series.tippings)]<-0
-
-		full.time.series[[ccntr]]<-cbind(y[1,1:(length(y)-3)], time.series.length, ddd)
+		##for looped version
+		#results[[ccntr]]<-cbind(time.series.length, ddd)	
+		#full.time.series[[ccntr]]<-cbind(y[1,1:(length(y)-3)], time.series.length, ddd)
+		return(cbind(y[1,1:(length(y)-3)], time.series.length, ddd))
 				}
 			}
 		}
 	}
-}
+}, mc.cores=6)
+#}
 
 ##number of analysed time series
 ccntr
-
 fin.res<-rbindlist(full.time.series);fin.res
 
-head(fin.res$TP.FP, 100)
+#============================================================================================================
+##add in some additional information about the
+##is the predictor based on the gam approach?
+lll<-unlist(lapply(strsplit(as.character(fin.res$variable), split=".",fixed=T), function(x){
+	if(length(which(unlist(x)=="gam"))>0){return("Yes")}else{"No"}	
+}))
+fin.res$inc.gam<-lll
 
-names(fin.res)
+##is it a composite approach?
+mmm<-unlist(lapply(strsplit(as.character(fin.res$variable), split=".",fixed=T), function(x){
+	if(length(which(unlist(x)=="comb"))>0){return("Yes")}else{"No"}	
+}))
+fin.res$is.comb<-mmm
+
+## add in the number of predictors in the method
+nnn<-unlist(lapply(strsplit(as.character(fin.res$variable), split="[.+]"), function(x){
+	##sx<-unlist(strsplit(as.character(fin.res$variable)[142765], "[.+]"))
+	return(length(x[!(x %in% c("gam", "comb"))]))
+}))
+fin.res$n.preds<-nnn
+
+save(fin.res, file="~/Dropbox/LPI EWS/Data/EWS results.RData")
+
+#============================================================================================================
 
 vars<-unique(fin.res$variable)
 
@@ -396,24 +362,22 @@ for(oo in 1:length(vars)){
 	
 	areas[[oo]]<-data.frame(auc(rocs), vars[oo])
 	
-	plot(rocs, add=ifelse(oo==1, F, T), col=adjustcolor("black", alpha=0.2))
+	clr<-ifelse(t1$inc.gam[1]=="Yes", "Red", "Blue")
+	
+	plot(rocs, add=ifelse(oo==1, F, T), col=adjustcolor(clr, alpha=0.2))
 
 }
 
 areas<-rbindlist(areas)
 areas[order(areas$auc.rocs, decreasing=T),]
+#============================================================================================================
+##calculate proportion sof fp to tp
+fin.res
+rev(sort(tapply(fin.res$TP.FP, list(fin.res$variable), function(x){sum(x)/length(x)})))
 
+##some investigations
 
-
-
-
-
-
-
-
-
-
-
+#============================================================================================================
 
 melt.res<-as.data.table(melt(fin.res, id=c(1:62)))
 
