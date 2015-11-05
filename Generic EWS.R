@@ -98,6 +98,8 @@ ccntr<-0
 	#i=29
 	#i=563
 full.time.series <-mclapply(long.enough, function(y){
+    ##check a specific time series
+    y<-subset(rbindlist(long.enough), ID==472)
 		#=======================================================================================================================
 		##y<-long.enough[[i]];print((i/length(long.enough)*100))
 		if(length(y[,1])>0){
