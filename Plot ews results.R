@@ -1,6 +1,8 @@
 rm(list=ls())
 library(reshape2)
 library(ggplot2)
+library(gridExtra)
+library(grid)
 library(data.table)
 library(parallel)
 load("~/Dropbox/LPI EWS/Data/EWS results.RData")
@@ -128,3 +130,119 @@ dev.off()
 ##do some threats show more EWS than others?
 
 
+#========================================================================================================
+##proportional graphs
+library(plyr)
+head(fin.res)
+fin.res<-as.data.frame(fin.res)
+props<-unique(fin.res[,c("ID", "Class", "Data_type","System","Red_list_category", "Primary_threat", "Secondary_threat")])##, 
+long.props<-melt(props, id.vars = 'ID')
+
+fin.props<-na.omit(melt(tapply(long.props$ID, list(long.props$variable, long.props$value), length)))
+
+fin.props<-rbindlist(lapply(split(fin.props, list(fin.props$Var1)), function(x){
+	x$prop<-x$value/sum(x$value)
+	#x<-x[order(x$prop, decreasing=T),]
+	#x$prop<-factor(x$prop, levels=x$prop)
+	return(x)
+	}))
+
+fin.props$Var2<-as.character(fin.props$Var2)
+	
+for(i in 1:length(fin.props$Var2)){
+	#i=15
+	fin.props$Var2[i]<-paste(strwrap(fin.props$Var2[i], width=20), collapse="\n")
+}
+
+
+fin.props<-rbindlist(lapply(split(fin.props, list(fin.props$Var1)), function(y){
+	y<-y[order(y$prop, decreasing=T),]
+	return(y)
+	}))
+
+fin.props<-ddply(fin.props, .(Var1), transform, pos=cumsum(prop)-(0.5*prop))
+
+fin.props$Var2 <- reorder(fin.props$Var2, fin.props$prop)
+fin.props$Var2 <- factor(fin.props$Var2, levels=rev(levels(fin.props$Var2)))
+
+
+#pdf("~/Desktop/LivingPlanet index early warnings/plots/Data breakdown.pdf", width=10, height=26)
+
+#ggplot(fin.props, aes(x = Var1)) + geom_bar(aes(weight=prop, col = Var2), position = 'fill') + scale_y_continuous("", breaks=NULL)+theme_bw()+xlab("")+theme(legend.position="none")+geom_text(aes(label = Var2, y = pos), angle=0, col="white", size=2.5)
+
+#dev.off()
+
+vars<-unique(fin.props$Var1)
+titles<-c("Class", "Data type", "System", "Red list category", "Primary threat", "Secondary threat")
+lss<-list()
+for(k in 1:length(vars)){
+#	k=4
+	sub<-subset(fin.props, Var1==vars[k])
+	p1<-ggplot(sub, aes(x=Var2))+geom_bar(aes(y=prop, fill=Var2),stat = "identity", col="black")+ scale_y_continuous("", breaks=NULL)+theme_bw()+xlab("")+scale_fill_discrete(name = "")+theme(legend.position="none", plot.margin=unit(c(-0.3,-2,-0.7,-2), "cm"))+theme(text = element_text(size=6))
+	p1<-p1+  theme(panel.border = element_blank(),
+        legend.key = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid  = element_blank())+
+        geom_hline(yintercept = seq(0, round(max(sub$prop), 1), by = 0.1), colour = "grey90", size = 0.2)+geom_vline(xintercept = seq(length.out=length(unique(sub$Var2))), colour = "grey90", size = 0.2)+ coord_polar()+ggtitle(paste("\n",titles[k]))
+	
+	p1<-p1+ scale_fill_brewer(palette="Spectral")+theme(plot.title=element_text(size=8,  vjust=-0.8))
+	
+	gg_table<-ggplot_gtable(ggplot_build(p1))
+	gg_table$layout$clip[gg_table$layout$name=="panel"] <- "off"
+	
+	lss[[k]]<-(gg_table)
+
+}
+
+pdf("~/Desktop/LivingPlanet index early warnings/plots/Data breakdown polar.pdf", width=5, height=7)
+grid.arrange(lss[[1]], lss[[2]], lss[[3]], lss[[4]],map2,  ncol=2)
+dev.off()
+
+blankPanel<-grid.rect(gp=gpar(col="white"))
+
+
+lat.long<-unique(fin.res[,c("ID", "Longitude","Latitude")])
+
+map2<-ggplot(legend=FALSE) + geom_polygon(data=world, aes(x=long, y=lat,group=group))+
+  geom_point(data= lat.long,aes(x= Longitude ,y= Latitude),col="blueviolet ", size=2, alpha=0.7)+
+  ggtitle("")+
+  ylab("")+xlab("")+
+ 	theme(axis.ticks.y = element_blank(),axis.text.y = element_blank(),
+ 	axis.ticks.x = element_blank(),axis.text.x = element_blank())+
+ 	theme(panel.background = element_blank()) +
+ 	theme(axis.ticks = NULL, plot.margin=unit(c(-2,-0,-5,-0), "cm"))+ coord_equal(ratio=1)
+
+
+
+pdf("~/Desktop/LivingPlanet index early warnings/plots/Data breakdown polar with map.pdf", width=7, height=8)
+	grid.arrange(map2, lss[[1]], lss[[2]], lss[[3]], lss[[4]],lss[[5]],lss[[6]], layout_matrix = rbind(c(1,1,1),c(2,3,4), c(5,6,7)), heights=c(5, 2, 2))
+dev.off()
+
+
+library(RColorBrewer)
+cols <- colorRampPalette(brewer.pal(12, "Pastel2"))
+myPal <- cols(length(fin.props[,1]))
+
+fin.props$uniques<-paste(as.character(fin.props$Var1), as.character(fin.props$Var2), sep=".")
+fin.props$uniques.2<-reorder(fin.props$uniques, 1:length(fin.props[,1]))
+
+p2<-ggplot(fin.props, aes(x=uniques.2))+geom_bar(aes(y=prop, fill=Var2, group=Var1),stat = "identity", col="black")+ scale_y_continuous("", breaks=NULL)+theme_bw()+xlab("")+theme(legend.position="none", plot.margin=unit(c(-0.3,-2,-0.7,-2), "cm"))+theme(text = element_text(size=10))
+p2<-p2+coord_polar()+scale_x_discrete(labels=fin.props$Var2)
+p2<-p2+theme(panel.border = element_blank(),
+        legend.key = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid  = element_blank())
+p2<-p2+geom_hline(yintercept = seq(0, round(max(fin.props$prop), 1), by = 0.1), colour = "grey90", size = 0.3)+geom_vline(xintercept = seq(length.out=length((fin.props$Var2))), colour = "grey90", size = 0.3)
+p2<-p2+geom_vline(xintercept = c(0.5, 6.5, 10.5, 13.5, 21.5, 28.5), colour = "grey50", size = 0.5)
+p2<-p2+annotate("text",x=c(3.5, 8.5, 12, 17.5, 25, 31.5), y=0.5, label=c("Class", "Data type", "System", "Red list category", "Primary threat", "Secondary threat"), size=4)
+p2<-p2+scale_fill_manual(values = myPal)
+gg_table<-ggplot_gtable(ggplot_build(p2))
+gg_table$layout$clip[gg_table$layout$name=="panel"] <- "off"
+
+grid.arrange(gg_table)
+
+pdf("~/Desktop/LivingPlanet index early warnings/plots/Data breakdown polar.pdf", width=8, height=7)
+grid.arrange(gg_table)
+dev.off()
