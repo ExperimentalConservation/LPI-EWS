@@ -99,7 +99,7 @@ ccntr<-0
 	#i=563
 full.time.series <-mclapply(long.enough, function(y){
     ##check a specific time series
-    y<-subset(rbindlist(long.enough), ID==472)
+    ##y<-subset(rbindlist(long.enough), ID==472)
 		#=======================================================================================================================
 		##y<-long.enough[[i]];print((i/length(long.enough)*100))
 		if(length(y[,1])>0){
@@ -313,7 +313,8 @@ full.time.series <-mclapply(long.enough, function(y){
 		##for looped version
 		#results[[ccntr]]<-cbind(time.series.length, ddd)	
 		#full.time.series[[ccntr]]<-cbind(y[1,1:(length(y)-3)], time.series.length, ddd)
-		return(cbind(y[1,1:(length(y)-3)], time.series.length, ddd))
+		declines<-length(which(time.series.tippings$sign==-1))
+		return(cbind(as.data.frame(y)[1,c(1:(length(y)-3))], time.series.length, ddd, declines))
 				}
 			}
 		}
