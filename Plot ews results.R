@@ -10,6 +10,8 @@ library(parallel)
 load("~/Dropbox/LPI EWS/Data/EWS results.RData")
 head(fin.res)
 
+fin.res<-subset(fin.res, fin.res$variable!= "kurt" & fin.res$variable!="sk")
+
 ##load map data
 world<-map_data("world")
 
@@ -30,13 +32,22 @@ se<-function(x){sd(x)/sqrt(length(x))}
 
 ##make a data frame of F scores and order then for plotting
 f.scores<-unique(as.data.frame(fin.res)[,c("variable","Fscore")])
+f.scores$variable<-as.character(f.scores$variable)
+f.scores$variable[1:5]<-paste("gam.", f.scores$variable[1:5], sep="")
+f.scores$variable<-as.factor(f.scores$variable)
 f.scores$variable<-reorder(f.scores$variable, -f.scores$Fscore)
+f.scores$col.code<-"Composite approach"
+f.scores$col.code[1:5]<-"GAM approach"
+f.scores$col.code[which(fin.res$inc.gam[match(f.scores$variable, fin.res$variable)]=="Yes")]<-"Composite GAM approach"
+
 ##make some coloyrs for the graphic 
-cols.blues <- colorRampPalette(tail(brewer.pal(9, "Blues"), 6))
-myPal.blues <- cols.blues(length(f.scores[,1]))
+#cols.blues <- colorRampPalette(tail(brewer.pal(9, "Blues"), 6))
+#myPal.blues <- cols.blues(length(f.scores[,1]))
 ##plot it out
 pdf("~/Desktop/LivingPlanet index early warnings/plots/Fscores.pdf", height=5, width=10)
-ggplot(f.scores, aes(x=variable, y=Fscore))+geom_bar(aes(fill=variable),stat="identity")+theme_classic()+theme(axis.text.x = element_text(angle = 90, hjust = 1, size=7))+scale_fill_manual(values = rev(myPal.blues))+theme(legend.position="none")+xlab("")+ylab("F score\n")
+
+ggplot(f.scores, aes(x=variable, y=Fscore))+geom_bar(aes(fill=as.factor(col.code)),stat="identity")+theme_classic()+theme(axis.text.x = element_text(angle = 90, hjust = 1, size=7))+theme(legend.position="top")+xlab("")+ylab("F score\n")+scale_fill_manual(values = c("peachpuff3 ", "lightsteelblue3  ", "mistyrose3"))+labs(fill='')     
+
 dev.off()
 
 ##calculate the overall means, extract the best and worst 10, used for plotting only
@@ -51,7 +62,7 @@ dev.off()
 
 ##the best model
 best<-f.scores$variable[which(f.scores$Fscore==max(f.scores$Fscore))]
-best.res<-subset(fin.res, variable==best)
+best.res<-subset(fin.res, variable==as.character(best))
 
 ##plot out the spatial data of the best model, only for time series with specific lat/long
 pdf("~/Desktop/LivingPlanet index early warnings/plots/Map of best metric.pdf", height=6, width=8)
@@ -70,9 +81,10 @@ ggplot(legend=FALSE) + geom_polygon(data=world, aes(x=long, y=lat,group=group), 
   
 ##calculate and plot out the distribution of time series lengths, split by data type
 lengths<-unique(as.data.frame(fin.res)[,c("ID", "time.series.length", "Data_type")])
+median(lengths$time.series.length)
 n.time.series<-length(lengths[,1])
 pdf("~/Desktop/LivingPlanet index early warnings/plots/Time series length.pdf", height=4, width=6)
-	ggplot(lengths, aes(x=time.series.length, fill=Data_type))+geom_histogram(col="white")+theme_classic()+scale_fill_brewer(palette="Set1")+theme(legend.position="top")+xlab("\nTime series length")+ylab("Frequency\n")+annotate("text", x=55, y=65, label=paste("Number of time series:", n.time.series), size=3.5)
+	ggplot(lengths, aes(x=time.series.length, fill=Data_type))+geom_histogram(col="white")+theme_classic()+scale_fill_brewer(palette="Set1")+theme(legend.position="top")+xlab("\nTime series length\n(years)")+ylab("Frequency\n")+annotate("text", x=55, y=65, label=paste("Number of time series:", n.time.series), size=3.5)
 dev.off()
     
 ##plot the mean number of EWS by red list category. Using data from the best metric only
@@ -84,8 +96,20 @@ declines.by.cat<-na.omit(melt(tapply(best.res.cat$declines/best.res.cat$time.ser
 bar.by.cat$dec.per.t<-declines.by.cat$value
 
 pdf("~/Desktop/LivingPlanet index early warnings/plots/EWS by category.pdf", height=4, width=6)
-p22<-ggplot(bar.by.cat, aes(x= Var1, y=value, fill=Var1))+geom_bar(stat='identity', alpha=0.5, col="black")+theme_classic()+geom_errorbar(aes(max=value+se(value), min=value-se(value)),stat="identity", col="black", width=0.2)+xlab("\nIUCN category")+ylab("Mean number of EWS per time step\n")+ggtitle(paste("Metric =", best.res.cat$variable[1], "\n"))+scale_fill_brewer(palette="Set2")+geom_vline(x=2.5, col="black")+theme(legend.position="none")
+p22<-ggplot(bar.by.cat, aes(x= Var1, y=value, fill=Var1))+geom_bar(stat='identity', alpha=0.5, col="black")+theme_classic()+geom_errorbar(aes(max=value+se(value), min=value-se(value)),stat="identity", col="black", width=0.2)+xlab("\nIUCN category")+ylab("Mean number of TP signals per time step\n")+ggtitle(paste("Metric =", best.res.cat$variable[1], "\n"))+scale_fill_brewer(palette="Set2")+geom_vline(x=2.5, col="black")+theme(legend.position="none")
 p22+annotate("text",x=bar.by.cat$Var1, label=c(round(bar.by.cat$dec.per.t, 2)), y=0.02)
+dev.off()
+
+##plot by taxa
+best.res.taxa<-na.omit(melt(tapply(best.res$prop, list(best.res$Class), mean)))
+best.res.taxa$se<-na.omit(melt(tapply(best.res$prop, list(best.res$Class), se)))[,2]
+best.res.taxa$length<-na.omit(melt(tapply(best.res$prop, list(best.res$Class), length)))[,2]
+best.res.taxa$t.length<-round(na.omit(melt(tapply(best.res$time.series.length, list(best.res$Class), mean)))[,2], 1)
+best.res.taxa$Var1<-reorder(best.res.taxa$Var1, -best.res.taxa$value)
+
+pdf("~/Desktop/LivingPlanet index early warnings/plots/EWS by taxa.pdf", height=4, width=6)
+p23<-ggplot(best.res.taxa, aes(x= Var1, y=value, fill=Var1))+geom_bar(stat='identity', alpha=0.5, col="black")+theme_classic()+geom_errorbar(aes(max=value+se, min=value-se),stat="identity", col="black", width=0.2)+xlab("\nClass")+ylab("Mean proportion of correctly identified signals\n")+ggtitle(paste("Metric =", best.res.cat$variable[1], "\n"))+scale_fill_brewer(palette="Set2")+theme(legend.position="none")
+p23+annotate("text",x= best.res.taxa $Var1, label=paste("n=",best.res.taxa$length, sep=""), y=0.1)
 dev.off()
 
 #========================================================================================================
@@ -154,7 +178,6 @@ kk.se<-na.omit(melt(tapply(fin.res$prop, list(fin.res$Data_type), function(l){
 	return(se(l))	
 })))
 
-
 kk.lengths<-unique(as.data.frame(fin.res)[,c("ID", "Data_type", "time.series.length")])
 
 k.lngs.mean<-na.omit(melt(tapply(kk.lengths$time.series.length, list(kk.lengths$Data_type), mean)))
@@ -165,8 +188,9 @@ by.data.type$k.lngs.mean<-k.lngs.mean$value
 by.data.type$k.lngs.se<-k.lngs.se$value
 
 pdf("~/Desktop/LivingPlanet index early warnings/plots/Data type .pdf", width=5.6, height=3)
-ggplot(by.data.type, aes(x=Data_type, y=prop.correct, fill=Data_type))+geom_bar(stat="identity", alpha=0.5, col="black", width=0.8)+theme_classic()+xlab("")+ylab("Proportion of correctly identified\n TP or TN per time step\n")+geom_errorbar(aes(max=prop.correct+se, min=prop.correct-se),stat="identity", col="black", width=0.2)+scale_fill_brewer(palette="Set2")+theme(legend.position="none")+theme(axis.text.x = element_text(angle = 0))
+ggplot(by.data.type, aes(x=Data_type, y=prop.correct, fill=Data_type))+geom_bar(stat="identity", alpha=0.5, col="black", width=0.8)+theme_classic()+xlab("")+ylab("Proportion of correctly identified\n TP or TN per time step\n")+geom_errorbar(aes(max=prop.correct+se, min=prop.correct-se),stat="identity", col="black", width=0.2)+scale_fill_brewer(palette="Set2")+theme(legend.position="none")+theme(axis.text.x = element_text(angle = 0))+annotate("text", x=by.data.type$Data_type, y=0.15, label=round(by.data.type$k.lngs.mean, 1), angle=0, size=5)
 dev.off()
+
 
 #========================================================================================================
 ##proportional graphs

@@ -97,15 +97,16 @@ ccntr<-0
 	#i=4968
 	#i=29
 	#i=563
+	#i=3042
 full.time.series <-mclapply(long.enough, function(y){
     ##check a specific time series
     ##y<-subset(rbindlist(long.enough), ID==472)
 		#=======================================================================================================================
-		##y<-long.enough[[i]];print((i/length(long.enough)*100))
+		#y<-long.enough[[i]];print((i/length(long.enough)*100))
 		if(length(y[,1])>0){
 		#=======================================================================================================================
 		##if there is a reasonable amount of variation in the time series data
-		if(!length(which(diff(y$value)==0))>(length(y[,1])/2.8)){
+		if(!length(which(diff(y$value)==0))>(length(y[,1])/3)){
 			
 		##the number of years of data, remove any NAs
 		time.series.length<-length(na.omit(y$year))
@@ -128,9 +129,12 @@ full.time.series <-mclapply(long.enough, function(y){
 		
 		##take the time and abundance data
 		mat.dat<-matrix(c(y$year, y$value), ncol=2)
-
+		
+		##calculate a 5 year lead in for rolling window
+		window.size<-100/(length(mat.dat[,1])/5)
+		
 		#calculate the generic ews using the dakos package	
-		ews.res<-no.plot.ews(mat.dat, detrending="gaussian", interpolate=interp, winsize=25)
+		ews.res<-no.plot.ews(mat.dat, detrending="gaussian", interpolate=interp, winsize=window.size)
 		##remove cv as it shouldnt be calculated if data is detrended
 		ews.res$cv<-NULL
 		
@@ -259,9 +263,13 @@ full.time.series <-mclapply(long.enough, function(y){
 		##then split it by the different ews
 		split.shrt.tms<-split(melt.shrt.tms, list(melt.shrt.tms$variable))
 		
+		##shortest time series, i.e. make sure we use the same amount of time points in each analysis. 
+		##This will be one of the GAM dakos rolling window approaches 
+		shortest.time.series<-min(which(!is.na(split.shrt.tms[[1]]$value)))
+		
 		ddd<-rbindlist(lapply(split.shrt.tms, function(yy, time.series.tippings){
 				##yy<-split.shrt.tms[[1]]
-				
+				yy[shortest.time.series:length(yy[,1]),]
 				yy<-na.omit(yy)
 				yy$value[which(yy$value==-1)]<-0
 				
@@ -348,97 +356,3 @@ nnn<-unlist(lapply(strsplit(as.character(fin.res$variable), split="[.+]"), funct
 fin.res$n.preds<-nnn
 
 save(fin.res, file="~/Dropbox/LPI EWS/Data/EWS results.RData")
-
-#============================================================================================================
-
-vars<-unique(fin.res$variable)
-
-areas<-NULL
-
-for(oo in 1:length(vars)){
-
-	##oo<-2
-
-	t1<-subset(fin.res, variable==vars[oo])
-
-	rocs<-roc(t1$TP.FP, t1$ID, plot=F, smooth=F)
-	
-	areas[[oo]]<-data.frame(auc(rocs), vars[oo])
-	
-	clr<-ifelse(t1$inc.gam[1]=="Yes", "Red", "Blue")
-	
-	plot(rocs, add=ifelse(oo==1, F, T), col=adjustcolor(clr, alpha=0.2))
-
-}
-
-areas<-rbindlist(areas)
-areas[order(areas$auc.rocs, decreasing=T),]
-#============================================================================================================
-##calculate proportion sof fp to tp
-fin.res
-rev(sort(tapply(fin.res$TP.FP, list(fin.res$variable), function(x){sum(x)/length(x)})))
-
-##some investigations
-
-#============================================================================================================
-
-melt.res<-as.data.table(melt(fin.res, id=c(1:62)))
-
-melt.res
-
-world<-map_data("world")
-
-#============================================================================================================
-## plot out the locations of the time series
-uniques<-rbindlist(mclapply(split(fin.res, list(fin.res$ID)), function(x){
-	if(length(x[,1])>0){return(x[1,])}
-}))
-
-length(uniques$ID)
-
-p1 <- ggplot(world, aes(long,lat,group=group)) + geom_polygon(fill="white", col="black")+theme_bw()+xlab("")+ylab("")+geom_point(data=uniques, aes(x= Longitude, y= Latitude, col=Class, group=ID), size=4,alpha=1, size=2)+theme(legend.position="top", axis.ticks=element_blank(), axis.title.x=element_blank(),axis.title.y=element_blank(),axis.line=element_blank(),axis.text.x=element_blank(), axis.text.y=element_blank())##+facet_wrap(~Class, ncol=2)
-pdf("~/Desktop/LivingPlanet index early warnings/plots/Maps 1.pdf", width=6, height=6)
-p1
-dev.off()
-#============================================================================================================
-##and the lengths of the time series 
-p2<-ggplot(uniques, aes(x= time.series.length))+geom_histogram(fill="black", col="white")+theme_classic()+ylab("Number of time series\n")+xlab("\nLength of time series")
-pdf("~/Desktop/LivingPlanet index early warnings/plots/Time series length.pdf", width=6, height=3)
-p2
-dev.off()
-#============================================================================================================
-##proportion of true post to false negs
-
-sort(tapply(fin.res$TP, list(fin.res$variable), function(l)sum(l)/length(l))-tapply(fin.res$FP, list(fin.res$variable), function(l)sum(l)/length(l)))
-
-
-p3<-ggplot(data=propotions, aes(x=Var1, y=value))+geom_bar(stat="identity")+theme_classic()+theme(axis.text.x =element_text(angle=90, vjust=0.5))+xlab("")+ylab("Proportion of time series\ndisplaying early warning signals\n")
-pdf("~/Desktop/LivingPlanet index early warnings/plots/Proportions displaying EWS.pdf", width=8, height=5)
-p3
-dev.off()
-#============================================================================================================
-
-cats<-c("LC", "NT", "VU", 	"EN", "CR")
-
-dd2<-subset(melt.res, Red_list_category %in% cats)
-
-levels(dd2$Red_list_category)
-
-dd2$Redlist<-factor(dd2$Red_list_category, levels=cats)
-
-dd2<-subset(dd2, variable %in% c("comb.dr"))
-
-propotions.redlist<-na.omit(melt(tapply(dd2$value, list(dd2$Redlist, dd2$variable), function(l)sum(l)/length(l))))
-
-#dd2<-subset(dd2, variable!="cv" & variable!="kurt" & variable!="sk")
-
-p4<-ggplot(propotions.redlist)+geom_bar(aes(x=Var1, y=value),col="black", fill="black", stat="identity")+theme_bw()+facet_wrap(~Var2)
-
-pdf("~/Desktop/LivingPlanet index early warnings/plots/EWS by category.pdf", width=8, height=5)
-p4
-dev.off()
-
-
-prop.redlist.only<-melt(tapply(dd2$value, list(dd2$Redlist), function(l)sum(l)/length(l)))
-
-ggplot(prop.redlist.only)+geom_bar(aes(x=Var1, y=value),col="black", fill="black", stat="identity")+theme_classic()+xlab("Redlist category")+ylab("Proportion showing EWS")
